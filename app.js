@@ -1,7 +1,7 @@
 // Python yfinance Backend Integration
 
 // 部署提示：把后台部署到 Render 后，请把这里的地址替换为您获得的那个 https://... 的地址
-const API_BASE_URL = 'http://localhost:5000'; 
+const API_BASE_URL = 'https://stock-backend1.onrender.com';
 
 let defaultTickers = ['AAPL', 'NVDA', '600519.SS', '000001.SZ', 'TSLA'];
 let activeWatchlist = [];
@@ -20,7 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initChart();
     renderNews();
     setupEventListeners();
-    
+
     // Initial fetch
     fetchStockData(defaultTickers, (data) => {
         activeWatchlist = data;
@@ -51,14 +51,14 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 async function fetchStockData(tickerList, callback) {
-    if(!tickerList || tickerList.length === 0) return;
+    if (!tickerList || tickerList.length === 0) return;
     try {
         const res = await fetch(`${API_BASE_URL}/api/quote?tickers=${tickerList.join(',')}`);
         const data = await res.json();
         if (data) {
             callback(data);
         }
-    } catch(err) {
+    } catch (err) {
         console.error("Failed to fetch from python backend:", err);
         alert(`无法连接到数据服务器 (${API_BASE_URL})！请检查后端是否在运行，或控制台报错: ` + err.message);
     }
@@ -86,7 +86,7 @@ function initChart() {
         areaTopColor: 'rgba(99, 102, 241, 0.4)',
         areaBottomColor: 'rgba(99, 102, 241, 0)',
     });
-    
+
     window.addEventListener('resize', () => {
         chart.applyOptions({ width: chartContainer.clientWidth });
     });
@@ -95,19 +95,19 @@ function initChart() {
 function updateChartWithNewPrice(price, change) {
     const time = Math.floor(Date.now() / 1000);
     const dataList = lineSeries.data();
-    if(dataList && dataList.length > 0) {
+    if (dataList && dataList.length > 0) {
         let last = dataList[dataList.length - 1];
         if (last.time === time) return;
     }
     lineSeries.update({ time: time, value: price });
-    
+
     const color = change >= 0 ? '#10b981' : '#ef4444';
     lineSeries.applyOptions({ color: color });
 }
 
 function selectStock(ticker) {
     currentStockTicker = ticker;
-    
+
     if (!defaultTickers.includes(ticker)) {
         defaultTickers.push(ticker);
     }
@@ -116,20 +116,20 @@ function selectStock(ticker) {
     if (searchInput) searchInput.value = '';
 
     fetchStockData([ticker], async (data) => {
-        if(data && data.length > 0) {
+        if (data && data.length > 0) {
             const stock = data[0];
             document.getElementById('current-stock-name').textContent = stock.name;
             document.getElementById('current-stock-ticker').textContent = stock.ticker;
-            
+
             // Generate real history chart using backend
             fetch(`${API_BASE_URL}/api/history?ticker=${ticker}`)
                 .then(res => res.json())
                 .then(histData => {
-                    if(histData && histData.length > 0) {
+                    if (histData && histData.length > 0) {
                         lineSeries.setData(histData);
                     } else {
                         // Fallback to empty if history fails but quote works
-                        lineSeries.setData([{time: Math.floor(Date.now()/1000), value: stock.price}]);
+                        lineSeries.setData([{ time: Math.floor(Date.now() / 1000), value: stock.price }]);
                     }
                 }).catch(e => console.error("Historical data error", e));
 
@@ -143,10 +143,10 @@ function selectStock(ticker) {
                         renderNews(NEWS); // Fallback to static dummy news
                     }
                 }).catch(e => console.error("News data error", e));
-            
+
             const color = stock.change >= 0 ? '#10b981' : '#ef4444';
             lineSeries.applyOptions({ color: color });
-            
+
             fetchStockData(defaultTickers, (listData) => {
                 activeWatchlist = listData;
                 renderWatchlist();
@@ -197,11 +197,11 @@ function setupEventListeners() {
         }
 
         let testTicker = query.toUpperCase();
-        
+
         // Auto-fix A-share formats if user types 6 digits
         if (/^\d{6}$/.test(testTicker)) {
             testTicker = (testTicker.startsWith('6') ? testTicker + '.SS' : testTicker + '.SZ');
-        } 
+        }
 
         fetchStockData([testTicker], (data) => {
             if (data && data.length > 0) {
@@ -272,14 +272,14 @@ function setupEventListeners() {
             btn.classList.add('active');
             // Mock refreshing logic for timeframes since history provides 3mo
             fetchStockData([currentStockTicker], async (data) => {
-                if(data.length > 0) {
+                if (data.length > 0) {
                     try {
                         const res = await fetch(`${API_BASE_URL}/api/history?ticker=${currentStockTicker}`);
                         const histData = await res.json();
-                        if(histData && histData.length > 0) {
+                        if (histData && histData.length > 0) {
                             lineSeries.setData(histData);
                         }
-                    } catch(e) {}
+                    } catch (e) { }
                 }
             });
         });
@@ -292,7 +292,7 @@ function updatePnL() {
     let currentPnl = parseFloat(currentPnlText);
     const sign = pnl.textContent.includes('-') ? -1 : 1;
     currentPnl *= sign;
-    
-    const newPnl = currentPnl + (Math.random() - 0.45) * 50; 
-    pnl.textContent = `${newPnl >= 0 ? '+¥' : '-¥'} ${Math.abs(newPnl).toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+
+    const newPnl = currentPnl + (Math.random() - 0.45) * 50;
+    pnl.textContent = `${newPnl >= 0 ? '+¥' : '-¥'} ${Math.abs(newPnl).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
 }
